@@ -11,10 +11,10 @@
 <p align="center">
   <a href="https://github.com/r-three/TokSuite">
     <img alt="GitHub" src="https://img.shields.io/badge/GitHub-Repository-181717?logo=github"></a>
-  <a href="https://huggingface.co/toksuite">
+  <a href="https://huggingface.co/collections/toksuite/toksuite-model-collection">
     <img alt="HuggingFace Models" src="https://img.shields.io/badge/🤗-Models-yellow"></a>
-  <a href="https://huggingface.co/datasets/toksuite">
-    <img alt="HuggingFace Datasets" src="https://img.shields.io/badge/🤗-Datasets-blue"></a>
+  <a href="https://huggingface.co/collections/toksuite/toksuite-benchmarks">
+    <img alt="HuggingFace Benchmarks" src="https://img.shields.io/badge/🤗-Benchmarks-blue"></a>
   <a href="https://arxiv.org/abs/2512.20757">
     <img alt="arXiv" src="https://img.shields.io/badge/arXiv-2512.20757-b31b1b"></a>
   <a href="https://github.com/r-three/TokSuite/blob/main/LICENSE">
@@ -28,7 +28,7 @@
 - **Controlled by design**: Same architecture, dataset, training budget, and initialization — only the tokenizer changes.
 - **Broad coverage**: 14 tokenizers evaluated, ranging from character-level and byte-level to subword tokenizers from major model families.
 - **New robustness benchmark**: A custom evaluation dataset testing model sensitivity to real-world text perturbations that affect tokenization (orthographic noise, diacritics, OCR artifacts, Unicode variants, and more).
-- **Multilingual focus**: Evaluation across English, Farsi, Turkish, Chinese, and Italian languages.
+- **Multilingual focus**: Models trained on English, Chinese, Turkish, Italian, and Farsi.
 - **Fully open**: Code, models, datasets, and paper are all publicly released.
 
 See our paper for details: https://arxiv.org/abs/2512.20757
@@ -37,22 +37,22 @@ See our paper for details: https://arxiv.org/abs/2512.20757
 
 We release 14 controlled 1B-parameter models, each trained with a different tokenizer under identical conditions (Llama-3.2-1B architecture, ~100B token training budget):
 
-| Model | Tokenizer | Vocabulary Size | HuggingFace |
-|-------|-----------|----------------|-------------|
-| **TokSuite-Llama-GPT2** | GPT-2 | 50,257 | [toksuite/toksuite-llama-gpt2](https://huggingface.co/toksuite/toksuite-llama-gpt2) |
-| **TokSuite-Llama-Llama3** | Llama-3.2-1B | 128,256 | [toksuite/toksuite-llama-llama3](https://huggingface.co/toksuite/toksuite-llama-llama3) |
-| **TokSuite-Llama-Qwen3** | Qwen3-8B | 151,936 | [toksuite/toksuite-llama-qwen3](https://huggingface.co/toksuite/toksuite-llama-qwen3) |
-| **TokSuite-Llama-Gemma2** | Gemma-2-2B | 256,000 | [toksuite/toksuite-llama-gemma2](https://huggingface.co/toksuite/toksuite-llama-gemma2) |
-| **TokSuite-Llama-Phi3** | Phi-3-mini | 32,064 | [toksuite/toksuite-llama-phi3](https://huggingface.co/toksuite/toksuite-llama-phi3) |
-| **TokSuite-Llama-Mistral** | Mistral Tekken | 131,072 | [toksuite/toksuite-llama-mistral](https://huggingface.co/toksuite/toksuite-llama-mistral) |
-| **TokSuite-Llama-GPT4o** | tiktoken (GPT-4o) | 200,019 | [toksuite/toksuite-llama-gpt4o](https://huggingface.co/toksuite/toksuite-llama-gpt4o) |
-| **TokSuite-Llama-Aya** | Aya-Expanse-8B | 255,000 | [toksuite/toksuite-llama-aya](https://huggingface.co/toksuite/toksuite-llama-aya) |
-| **TokSuite-Llama-BLOOM** | BLOOM | 250,680 | [toksuite/toksuite-llama-bloom](https://huggingface.co/toksuite/toksuite-llama-bloom) |
-| **TokSuite-Llama-mBERT** | mBERT | 119,547 | [toksuite/toksuite-llama-mbert](https://huggingface.co/toksuite/toksuite-llama-mbert) |
-| **TokSuite-Llama-XGLM** | XGLM-564M | 256,008 | [toksuite/toksuite-llama-xglm](https://huggingface.co/toksuite/toksuite-llama-xglm) |
-| **TokSuite-Llama-ByT5** | ByT5 (byte-level) | 384 | [toksuite/toksuite-llama-byt5](https://huggingface.co/toksuite/toksuite-llama-byt5) |
-| **TokSuite-Llama-CommonPile** | Common Pile | 65,536 | [toksuite/toksuite-llama-commonpile](https://huggingface.co/toksuite/toksuite-llama-commonpile) |
-| **TokSuite-Llama-TokenMonster** | TokenMonster | 32,000 | [toksuite/toksuite-llama-tokenmonster](https://huggingface.co/toksuite/toksuite-llama-tokenmonster) |
+| Tokenizer | Method | Vocab. Size | Languages | HuggingFace |
+|-----------|--------|-------------|-----------|-------------|
+| ByT5 | Bytes | 259 | Language-agnostic | [toksuite/google-byt5-small](https://huggingface.co/toksuite/google-byt5-small) |
+| TokenMonster | Custom | 32,000 | English-only | [toksuite/tokenmonster-englishcode-32000-consistent-v1](https://huggingface.co/toksuite/tokenmonster-englishcode-32000-consistent-v1) |
+| Phi-3 | BPE | 32,064 | Multilingual | [toksuite/microsoft-Phi-3-mini-4k-instruct](https://huggingface.co/toksuite/microsoft-Phi-3-mini-4k-instruct) |
+| GPT-2 | BPE | 50,257 | English-only | [toksuite/gpt2](https://huggingface.co/toksuite/gpt2) |
+| Comma | BPE | 64,000 | Multilingual | [toksuite/common-pile-comma-v0.1](https://huggingface.co/toksuite/common-pile-comma-v0.1) |
+| mBERT | WordPiece | 110,000 | Multilingual | [toksuite/google-bert-bert-base-multilingual-cased](https://huggingface.co/toksuite/google-bert-bert-base-multilingual-cased) |
+| Llama-3.2 | BPE | 128,256 | Multilingual | [toksuite/meta-llama-Llama-3.2-1B](https://huggingface.co/toksuite/meta-llama-Llama-3.2-1B) |
+| Tekken | BPE | 130,000 | Multilingual | [toksuite/mistralai-tekken](https://huggingface.co/toksuite/mistralai-tekken) |
+| Qwen-3 | BPE | 151,646 | Multilingual | [toksuite/Qwen-Qwen3-8B](https://huggingface.co/toksuite/Qwen-Qwen3-8B) |
+| GPT-4o | BPE | 200,000 | Multilingual | [toksuite/tiktoken-gpt-4o](https://huggingface.co/toksuite/tiktoken-gpt-4o) |
+| BLOOM | BPE | 250,680 | Multilingual | [toksuite/bigscience-bloom](https://huggingface.co/toksuite/bigscience-bloom) |
+| Aya | BPE | 255,029 | Multilingual | [toksuite/CohereLabs-aya-expanse-8b](https://huggingface.co/toksuite/CohereLabs-aya-expanse-8b) |
+| XGLM | Unigram | 256,008 | Multilingual | [toksuite/facebook-xglm-564M](https://huggingface.co/toksuite/facebook-xglm-564M) |
+| Gemma-2 | Unigram | 256,128 | Multilingual | [toksuite/google-gemma-2-2b](https://huggingface.co/toksuite/google-gemma-2-2b) |
 
 All models share the same initialization via a **super-vocabulary** approach, ensuring fair comparison.
 
@@ -165,17 +165,20 @@ Full results and analysis are available in the [paper](https://arxiv.org/abs/251
 
 ## Citation
 
+If you use TokSuite in your work please cite the paper below. BibTeX entries are provided for convenience.
+
 ```bibtex
-@article{altintas2025toksuite,
-  title={TokSuite: Measuring the Impact of Tokenizer Choice on Language Model Behavior},
-  author={Altıntaş, Gül Sena and Ehghaghi, Malikeh and Lester, Brian and Liu, Fengyuan and Zhao, Wanru and Ciccone, Marco and Raffel, Colin},
-  year={2025},
-  eprint={2512.20757},
-  archivePrefix={arXiv},
-  primaryClass={cs.CL},
-  url={https://arxiv.org/abs/2512.20757}
+@inproceedings{altintas2026toksuite,
+  author       = {G{"u}l Sena Altınta\c{s} and Malikeh Ehghaghi and Brian Lester and Fengyuan Liu and Wanru Zhao and Marco Ciccone and Colin Raffel},
+  title        = {{TokSuite}: Measuring the Impact of Tokenizer Choice on Language Model Behavior},
+  booktitle    = {Proceedings of the 43rd International Conference on Machine Learning (ICML)},
+  year         = {2026},
+  eprint       = {2512.20757},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2512.20757}
 }
 ```
+
 
 ## License
 
