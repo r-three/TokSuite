@@ -8,7 +8,6 @@ particularly for Vector cluster.
 from typing import Literal, Optional
 
 import torch
-import transformer_lens
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from vllm import LLM
 from toksuite.utils.system import VECTOR_HF_MAPPING, Hosts, get_host
@@ -46,21 +45,6 @@ def load_model(
     model = AutoModelForCausalLM.from_pretrained(model_path, **kwargs)
     return model
 
-
-def load_hooked_model(
-    model_name,
-    dtype: Optional[Literal["bfloat16", "float16", "float32"]] = "bfloat16",
-    device_map: str = "auto",
-):
-    """ """
-    kwargs = dict(device_map=device_map)
-    model_path = model_name
-    if get_host() == Hosts.vector:
-        model_path = VECTOR_HF_MAPPING.get(model_name, model_path)
-        kwargs["local_files_only"] = True
-    return transformer_lens.HookedTransformer.from_pretrained(
-        model_name, dtype=dtype, **kwargs
-    )
 
 
 def load_vllm_model(

@@ -70,40 +70,42 @@ A parallel collection of multiple-choice text completion questions paired with a
 
 Available at: [toksuite/toksuite-robustness](https://huggingface.co/collections/toksuite/toksuite-benchmarks)
 
-## Installation
+## Set-up
+We recommend using uv (install it with `pip install uv` if not already available).
 
-We recommend using [uv](https://docs.astral.sh/uv/) (install with `pip install uv` if not already available).
-
-#### Using UV (Recommended)
+### On Killarney
+On the Killarney cluster, you need to first load the following modules:
+```bash
+module load slurm/killarney/24.05.7 StdEnv/2023  gcc/13.3  openmpi/5.0.3 cuda/12.6 python/3.10.13
+```
+and for the first time you run the code, you need to install the packages to the system:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 ```bash
-git clone https://github.com/r-three/TokSuite.git
-cd TokSuite
+# If you don't have a virtual environment already, you can either
+# 1. Install the packages to the system
+uv pip install -e . --system
+
+# 2. Create a venv with uv
+# make sure to load cuda (locally built with cuda-12.4)
 uv venv --python 3.10
 source .venv/bin/activate
-
-# First-time setup: build dependencies (torch, etc.), then all extras
+## First run
 uv sync --extra build
 uv sync --all-extras
-
-# On machines without a GPU, skip flash-attn:
-uv sync --extra build
-uv sync --all-extras --no-install-package flash-attn
+# on machines w/o cuda
+uv sync --all-extras --all-groups  --no-install-package flash-attn
 ```
+If you have another uv venv, you can add this package to the original projects `pyproject.toml` as below and run `uv sync --extra tokenizers` in the main directory:
+```toml
+[project.optional-dependencies]
+tokenizers = ["toksuite"]
 
-#### Using pip
-
-```bash
-git clone https://github.com/r-three/TokSuite.git
-cd TokSuite
-pip install -e .
-pip install -e .[compile]   # optional: adds flash-attn
+[tool.uv.sources]
+toksuite = { path = "../tokenizers", editable = true }
 ```
-
-### Optional Dependencies
-
-- `flash-attn` — efficient attention kernels (requires matching CUDA/PyTorch versions)
-- `vllm` — faster inference for large-scale evaluation (Linux + CUDA only; automatically excluded on macOS)
 
 ## Usage
 
@@ -148,20 +150,17 @@ token-alysis \
 
 To reproduce the TokSuite models, you first need to build the **super vocabulary** described in Section 3.2 of the paper. The super vocabulary is the union of all 14 tokenizer vocabularies (normalized to UTF-8 bytes), along with per-tokenizer alignment mappings used to initialize shared embedding weights across models.
 
-**Step 1 — Extract the tiktoken file for GPT-4o** (required before building the super vocab, since tiktoken tokenizers are not available on HuggingFace):
+Run the convenience script, which handles the tiktoken extraction and vocab build in one step:
 
 ```bash
-python -m toksuite.scripts.create_tiktoken gpt-4o \
-  --output vocabs/tiktoken-gpt-4o/gpt-4o.tiktoken
+bash toksuite/scripts/build_super_vocab.sh
 ```
 
-**Step 2 — Build the super vocabulary** for all 14 TokSuite tokenizers:
+> **Before running**, update the `SCRATCH` path at the top of `build_super_vocab.sh` to point to your own scratch or cache directory. This keeps model downloads out of your home directory.
+
+To use a custom set of tokenizers instead, invoke the Python module directly:
 
 ```bash
-# Convenience script — runs all 14 tokenizers used in the paper
-bash toksuite/scripts/build_super_vocab.sh
-
-# Or invoke directly with a custom set of tokenizers
 python -m toksuite.scripts.super_vocab \
   --tokenizers \
     google/byt5-small \

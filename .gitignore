@@ -235,3 +235,4 @@ ENV/
 .vscode/.envFile
 results/*
 uv.lock
+vocabs/*

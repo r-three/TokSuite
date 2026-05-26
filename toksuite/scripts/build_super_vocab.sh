@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 
+export SCRATCH="/home/ehghaghi/scratch/ehghaghi"
+export HUGGINGFACE_HUB_CACHE=$SCRATCH/.cache
+export HF_HOME=$SCRATCH/huggingface
+
 python super_vocab.py \
     --tokenizers \
     google-bert/bert-base-uncased \
