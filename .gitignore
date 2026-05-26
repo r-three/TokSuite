@@ -235,4 +235,4 @@ ENV/
 .vscode/.envFile
 results/*
 uv.lock
-vocabs/*
+toksuite/scripts/vocabs/*

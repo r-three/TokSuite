@@ -158,14 +158,37 @@ sbatch slurm_scripts/eval_supertoken_on_completion.sh
 
 ### Computing Intrinsic Tokenizer Metrics
 
-Compare tokenizers on fertility, parity, vocabulary overlap, and other intrinsic properties:
+Compute fertility, parity, proportion of continued words (PCW), and vocabulary overlap across tokenizers and languages:
 
 ```bash
+# Run all analyses for all 14 TokSuite tokenizers across all 5 languages
 python -m toksuite.scripts.calculate_intrinsic_tokenizer_metrics \
-  --tokenizers meta-llama/Llama-3.2-1B google/byt5-small bigscience/bloom \
-  --languages en zh tr it fa \
-  --output_dir results/intrinsic_metrics/
+  --tokenizers all \
+  --languages all \
+  --analyses all
+
+# Run specific analyses for a subset of tokenizers
+python -m toksuite.scripts.calculate_intrinsic_tokenizer_metrics \
+  --tokenizers "GPT-2,Llama-3.2,BLOOM" \
+  --languages all \
+  --analyses fertility,parity,pcw
+
+# Use custom tokenizers not in the default list (JSON mapping)
+python -m toksuite.scripts.calculate_intrinsic_tokenizer_metrics \
+  --tokenizers '{"My tokenizer": "org/my-model"}' \
+  --languages all \
+  --analyses fertility
 ```
+
+**`--tokenizers`**: `all` to use all 14 TokSuite tokenizers, a comma-separated list of shortnames, or a JSON dict mapping display name → HuggingFace path. Supported shortnames: `Comma`, `Llama-3.2`, `Phi-3`, `GPT-2`, `GPT-4o`, `BLOOM`, `XGLM`, `Tekken`, `ByT5`, `mBERT`, `Qwen-3`, `TokenMonster`, `Gemma-2`, `Aya`.
+
+**`--languages`**: `all` for all 5 languages (English, Chinese, Turkish, Farsi, Italian), or a comma-separated list of Flores-200 column keys (`sentence_eng_Latn`, `sentence_zho_Hans`, `sentence_tur_Latn`, `sentence_pes_Arab`, `sentence_ita_Latn`).
+
+**`--analyses`**: `all`, or a comma-separated subset of: `vocab_sizes`, `vocab_overlap`, `fertility`, `parity`, `pcw`, `example_tokenizations`.
+
+**`--dataset_name`**: HuggingFace dataset to use for text-based analyses (default: `Muennighoff/flores200`). **`--sample_size`**: number of examples to sample (default: `10000`). **`--sample_sentence`**: sentence used for `example_tokenizations` (default: `"Hello World"`).
+
+Outputs are saved as CSV files and plots (`.png`) in the current directory.
 
 ### Comparing Tokenizers
 
@@ -176,18 +199,6 @@ token-alysis \
   --tokenizers meta-llama/Llama-3.2-1B Qwen/Qwen3-8B \
   --text "Your input text here"
 ```
-
-### Computing Robustness-Specific Intrinsic Metrics
-
-To measure fertility, parity, and vocabulary overlap scoped to the TokSuite Robustness Benchmark dataset (rather than arbitrary text), use the robustness-specific script:
-
-```bash
-python -m toksuite.scripts.tokenizer_robustness_intrinsic_metrics \
-    --dataset_name toksuite/toksuite-robustness \
-    --tokenizers meta-llama/Llama-3.2-1B bigscience/bloom
-```
-
-This complements `calculate_intrinsic_tokenizer_metrics.py` by showing how tokenizers behave specifically on the perturbation types present in the benchmark.
 
 ### Building the Super-Vocabulary
 
