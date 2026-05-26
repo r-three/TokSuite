@@ -259,103 +259,47 @@ python -m toksuite.scripts.super_vocab \
 
 The `super_vocab.json` and `*_super_mapping.json` files are then used as the embedding initialization for model training (see Section 3.2 of the [paper](https://arxiv.org/abs/2512.20757)).
 
-### Publishing Super-Vocabulary Tokenizers to HuggingFace
 
-After building the super vocabulary locally, publish one tokenizer repository per model on HuggingFace (e.g. `toksuite/supervocab-gpt2`). Each repo bundles the shared `super_vocab.json` with the per-model alignment mapping so the conversion step below can download them as a unit.
-
-`super_vocab.py` encodes `/` as `--` in output filenames (e.g. `openai-community/gpt2` → `openai-community--gpt2_vocab.json`). Use the same replacement when locating the files to upload.
-
+## Converting Supertoken Models
 ```bash
-# Set variables — model_hf_name must match the ID passed to super_vocab.py
+
+
 model="gpt2"
-model_hf_name="openai-community/gpt2"
-tokenizer_name="toksuite/supervocab-$model"
-safe_name="${model_hf_name//\/'/--'}"
-staging="staging/$model"
+tokenizer="gpt2"
+model_name="craffel/supertoken_models"
+model_path="$model_name/$model/"
+tokenizer_name="blester125/supervocab-$tokenizer"
+hf_model_path="$PROJECT/models/$model_name"
+tokenizer_path="$PROJECT/tokenizers/$tokenizer"
+hf_out_path="gsaltintas/supertoken_models-llama_$model"
 
-# Collect the relevant files into a staging directory
-mkdir -p "$staging"
-cp vocabs/super_vocab.json                       "$staging/"
-cp "vocabs/${safe_name}_vocab.json"              "$staging/"
-cp "vocabs/${safe_name}_super_mapping.json"      "$staging/"
-cp "vocabs/${safe_name}_info.json"               "$staging/"
-cp "vocabs/${safe_name}.yaml"                    "$staging/"
+# Create directories
+mkdir -p "$hf_model_path"
+mkdir -p "$hf_model_path"
 
-# Create the HuggingFace repo and push (drop --private to make it public)
-huggingface-cli repo create "$tokenizer_name" --type model --private
-huggingface-cli upload "$tokenizer_name" "$staging" .
-```
-
-Repeat for every tokenizer listed in `build_super_vocab.sh`. The next step downloads these repos and reads `super_vocab.json` (matched as `*vocab.json`) to determine the embedding size and remap individual token embeddings via `*_super_mapping.json`.
-
-### Training the TokSuite Models
-
-Reproducing the full suite requires three training phases. The actual LLM training is not part of this repository — use any standard pre-training framework configured for the Llama-3.2-1B architecture and the TokSuite pretraining data (see [Datasets](#datasets)).
-
-**Phase 1 — Train the superset model**
-
-Train a single Llama-1B model whose embedding and output layers are sized to the full super vocabulary (`len(super_vocab.json)` tokens, approximately 600 K). Use `super_vocab.json` as the vocabulary. This model does not need to fully converge; its purpose is to produce meaningful shared initial embeddings for all 14 tokenizers. Save the raw checkpoint as a `.pth` file:
-
-```
-checkpoints/llama1b_supertoken/model.pth
-```
-
-**Phase 2 — Slice per-tokenizer starting checkpoints**
-
-Once the superset checkpoint exists, run `create_checkpoint.py` to extract tokenizer-specific embedding rows from it. For each tokenizer it reads `{tokenizer}_super_mapping.json` to find which super-vocab rows belong to that tokenizer, slices `tok_embeddings.weight` and `output.weight` accordingly, and saves the result as a warm-started checkpoint.
-
-Run all tokenizers at once with the convenience script:
-
-```bash
-bash toksuite/scripts/create_checkpoints.sh
-```
-
-> **Before running**, update `--superset` and `--model_dir` in `create_checkpoints.sh` to point to your superset checkpoint and output directory.
-
-To run for a single tokenizer:
-
-```bash
-python -m toksuite.scripts.create_checkpoint \
-    --tokenizers meta-llama/Llama-3.2-1B \
-    --vocab_dir vocabs/ \
-    --superset checkpoints/llama1b_supertoken/model.pth \
-    --model_dir checkpoints/
-```
-
-Output: `checkpoints/supervocab-meta-llama--Llama-3.2-1B/model.pth`
-
-**Phase 3 — Train per-tokenizer models**
-
-Train each of the 14 models from its Phase 2 checkpoint. Each model uses its own tokenizer's vocabulary while sharing the same Llama-3.2-1B architecture, dataset, and ~100B token budget. Initialize `tok_embeddings.weight` and `output.weight` from the corresponding `supervocab-{tokenizer}/model.pth`. After training, convert each native checkpoint to HuggingFace format using the step below.
-
-### Converting Models to the Super-Vocabulary
-
-Once you have the super vocabulary, you can convert a trained model's weights to the super-vocabulary format using `toksuite/scripts/convert_supertoken_models.py`. This downloads the raw model and its tokenizer from HuggingFace, remaps the embeddings, and saves (or pushes) the converted model.
-
-```bash
-# Set your paths
-model="gpt2"
-model_name="toksuite/$model"
-tokenizer_name="toksuite/supervocab-$model"
-hf_model_path="models/$model_name"
-tokenizer_path="tokenizers/$model"
-output_dir="converted/$model"   # or a HuggingFace repo id if pushing
-
-# Download model and tokenizer
-huggingface-cli download $model_name --local-dir $hf_model_path
-huggingface-cli download $tokenizer_name --local-dir $tokenizer_path
-
-# Convert weights to HuggingFace format with the super-vocabulary tokenizer
-python -m toksuite.scripts.convert_supertoken_models \
-    --input_dir "$hf_model_path" \
+huggingface-cli download $model_name --local-dir=$hf_model_path
+huggingface-cli download $tokenizer_name --local-dir=$tokenizer_path
+# Convert LLaMA weights to HuggingFace format
+echo "Converting model weights to HuggingFace format..."
+python -m xarch_tokenizers.scripts.convert_supertoken_models \
+    --input_dir "$hf_model_path/$model" \
     --model_size 1B \
-    --llama_version 3 \
-    --tokenizer_version 3 \
+    --output_dir "$hf_model_path" \
+    --llama_version 3 --tokenizer_version 3 \
     --tokenizer_path "$tokenizer_path" \
-    --output_dir "$output_dir"
-```
+    --push_to_hub --output_dir $hf_out_path \
+    --only_model --public
 
-To push directly to HuggingFace Hub instead of saving locally, add `--push_to_hub --public --only_model` and set `--output_dir` to your Hub repo id (e.g. `your-username/model-name`).
+# Run lm_eval with converted model
+echo "Running lm_eval..."
+lm_eval \
+--model hf --model_args "pretrained=$hf_out_path,tokenizer=$tokenizer" \
+--device cuda \
+--tasks tokenizer_robustness_code_technical_content,tokenizer_robustness_context-dependent_ambiguities,tokenizer_robustness_mathematical_scientific_notation,tokenizer_robustness_morphological_challenges,tokenizer_robustness_multi-linguality,tokenizer_robustness_named_entities,tokenizer_robustness_orthographic_variations,tokenizer_robustness_social_media_informal_text,tokenizer_robustness_structural_text_elements,tokenizer_robustness_temporal_expressions \
+--log_samples \
+--verbosity DEBUG \
+--output_path "results/tokenization_robustness/v102-cleaned/supertoken/$model"
+```
 
 ## Citation
 
