@@ -23,12 +23,12 @@
 
 ---
 
-**TokSuite** is a comprehensive, controlled benchmark suite for studying how tokenizer choice affects language model behavior. By training multiple 1B-parameter models with identical architectures, data, and training budgets — varying only the tokenizer — TokSuite enables clean scientific ablations that isolate tokenization effects from confounding variables.
+**TokSuite** is a collection of models and a benchmark designed for studying how tokenizer choice affects language model behavior. By training multiple 1B-parameter models with identical architectures, data, and training budgets, varying only the tokenizer, TokSuite enables clean scientific ablations that isolate tokenization effects from confounding variables.
 
 - **Controlled by design**: Same architecture, dataset, training budget, and initialization — only the tokenizer changes.
 - **Broad coverage**: 14 tokenizers evaluated, ranging from character-level and byte-level to subword tokenizers from major model families.
-- **New robustness benchmark**: A custom evaluation dataset testing model sensitivity to real-world text perturbations that affect tokenization (orthographic noise, diacritics, OCR artifacts, Unicode variants, and more).
-- **Multilingual focus**: Models trained on English, Chinese, Turkish, Italian, and Farsi.
+- **New robustness benchmark**: A custom multilingual evaluation dataset testing model sensitivity to real-world text perturbations that affect tokenization (orthographic noise, diacritics, OCR artifacts, Unicode variants, and more).
+- **Multilingual focus**: The models are trained on English, Chinese, Turkish, Italian, and Farsi, and the parallel benchmark captures real-world perturbations across all five languages by applying them to the same canonical questions translated into each target language.
 - **Fully open**: Code, models, datasets, and paper are all publicly released.
 
 See our paper for details: https://arxiv.org/abs/2512.20757
@@ -63,19 +63,12 @@ A multilingual corpus of ~100B tokens used to train all suite models:
 - 40B tokens from [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) (English)
 - 60B tokens distributed across Chinese, Turkish, Italian, and Farsi
 
-Available at: [toksuite/toksuite-pretraining-data](https://huggingface.co/datasets/toksuite/toksuite-pretraining-data)
+Available at: [toksuite/toksuite-pretraining-data](https://huggingface.co/collections/toksuite/training-data-detokenized)
 
 ### TokSuite Robustness Benchmark
-A custom evaluation dataset testing model sensitivity to text perturbations that affect tokenization in real-world conditions. Covers:
-- Orthographic and spelling variations
-- Diacritic insertion and removal
-- Keyboard and input-method noise
-- Unicode homoglyphs and formatting artifacts
-- OCR and spacing errors
-- LaTeX and STEM-style formatting
-- Morphological challenges
+A parallel collection of multiple-choice text completion questions paired with a wide range of real-world surface-form perturbations that are known to interact strongly with tokenization covering English, Farsi, Turkish, Italian, and Chinese languages as well as STEM and Math domains.
 
-Available at: [toksuite/toksuite-robustness](https://huggingface.co/datasets/toksuite/toksuite-robustness)
+Available at: [toksuite/toksuite-robustness](https://huggingface.co/collections/toksuite/toksuite-benchmarks)
 
 ## Installation
 
@@ -124,10 +117,10 @@ TokSuite uses a fork of [lm-evaluation-harness](https://github.com/r-three/lm-ev
 
 ```bash
 # Evaluate on MGSM (multilingual math reasoning)
-uv run eval toksuite/configs/mgsm/mgsm_eval_llama3_1B.yaml
+uv run eval toksuite/configs/mgsm/mgsm_eval_llama8B.yaml
 
 # Evaluate on the TokSuite Robustness Benchmark
-uv run eval toksuite/configs/tokenization_robustness/eval_llama3_1B.yaml
+uv run eval toksuite/configs/tokenization_robustness/eval_llama8B.yaml
 ```
 
 You can override any config field from the command line, or create your own YAML config pointing to any HuggingFace model.
@@ -152,6 +145,54 @@ token-alysis \
   --tokenizers meta-llama/Llama-3.2-1B Qwen/Qwen3-8B \
   --text "Your input text here"
 ```
+
+### Building the Super-Vocabulary
+
+To reproduce the TokSuite models, you first need to build the **super vocabulary** described in Section 3.2 of the paper. The super vocabulary is the union of all 14 tokenizer vocabularies (normalized to UTF-8 bytes), along with per-tokenizer alignment mappings used to initialize shared embedding weights across models.
+
+**Step 1 — Extract the tiktoken file for GPT-4o** (required before building the super vocab, since tiktoken tokenizers are not available on HuggingFace):
+
+```bash
+python -m toksuite.scripts.create_tiktoken gpt-4o \
+  --output vocabs/tiktoken-gpt-4o/gpt-4o.tiktoken
+```
+
+**Step 2 — Build the super vocabulary** for all 14 TokSuite tokenizers:
+
+```bash
+# Convenience script — runs all 14 tokenizers used in the paper
+bash toksuite/scripts/build_super_vocab.sh
+
+# Or invoke directly with a custom set of tokenizers
+python -m toksuite.scripts.super_vocab \
+  --tokenizers \
+    google/byt5-small \
+    toksuite/tokenmonster-englishcode-32000-consistent-v1 \
+    microsoft/Phi-3-mini-4k-instruct \
+    openai-community/gpt2 \
+    nikandish/common-pile-comma-v0.1 \
+    google-bert/bert-base-multilingual-cased \
+    meta-llama/Llama-3.2-1B \
+    mistralai/Mistral-7B-v0.3 \
+    Qwen/Qwen3-8B \
+    vocabs/tiktoken-gpt-4o/gpt-4o.tiktoken \
+    bigscience/bloom \
+    CohereLabs/aya-expanse-8b \
+    facebook/xglm-564M \
+    google/gemma-2-2b \
+  --output_dir vocabs/
+```
+
+**Outputs** in `vocabs/`:
+
+| File | Description |
+|------|-------------|
+| `super_vocab.json` | Master vocabulary mapping token string → super-vocab index |
+| `{tokenizer}_super_mapping.json` | Per-tokenizer alignment: original token ID → super-vocab ID |
+| `{tokenizer}_vocab.json` | Original vocabulary for each tokenizer |
+| `{tokenizer}.yaml` | Tokenizer metadata |
+
+The `super_vocab.json` and `*_super_mapping.json` files are then used as the embedding initialization for model training (see Section 3.2 of the [paper](https://arxiv.org/abs/2512.20757)).
 
 ## Results
 

@@ -1,0 +1,32 @@
+"""Defines logging utilities"""
+
+import logging
+from pathlib import Path
+
+from toksuite.config import Config
+
+
+def setup_basic_logger(name: str = "") -> logging.Logger:
+    """Setup logger based on config."""
+    logger = logging.getLogger(name)
+    return logger
+
+
+def setup_logger(config: "Config", name: str = "") -> logging.Logger:
+    """Setup logger based on config."""
+    logging.basicConfig(
+        level=getattr(logging, config.log_level),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    logger = logging.getLogger(name)
+
+    # Add file handler
+    if config.experiment_dir.exists():
+        file_handler = logging.FileHandler(Path(config.experiment_dir) / "logs.log")
+        file_handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
+        logger.addHandler(file_handler)
+        print(f"Streaming output to {file_handler.baseFilename}")
+
+    return logger
