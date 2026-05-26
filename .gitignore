@@ -234,3 +234,4 @@ ENV/
 *.txt
 .vscode/.envFile
 results/*
+uv.lock

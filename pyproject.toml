@@ -18,7 +18,6 @@ dependencies = [
     "scikit-learn>=1.6.1",
     "torch>=2.5.0",
     "transformers>=4.53.0",
-    "vllm>=0.6.1.post2",
     "wandb>=0.19.8",
     "plotly==5.13.1",
     "seaborn>=0.13.2",
@@ -43,6 +42,7 @@ packages = ["toksuite"]
 [project.optional-dependencies]
 build = ["torch", "setuptools", "packaging"]
 compile = ["flash-attn"]
+inference = ['vllm>=0.6.1.post2; sys_platform == "linux"']
 # mergekit = ["mergekit"]
 # zett = [ "jax==0.5.2", "jaxlib==0.5.1", "optax==0.2.4", "flax==0.10.4", "chex", "zett" ]
 dev = [  "ruff", "pytest" ]

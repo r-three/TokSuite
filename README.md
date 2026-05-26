@@ -85,12 +85,10 @@ source .venv/bin/activate
 # First-time setup: build dependencies (torch, etc.), then all extras
 uv sync --extra build
 uv sync --all-extras
-```
 
-On machines without a GPU, skip `flash-attn`:
-
-```bash
-uv sync --all-extras --all-groups --no-install-package flash-attn
+# On machines without a GPU, skip flash-attn:
+uv sync --extra build
+uv sync --all-extras --no-install-package flash-attn
 ```
 
 #### Using pip
@@ -105,7 +103,7 @@ pip install -e .[compile]   # optional: adds flash-attn
 ### Optional Dependencies
 
 - `flash-attn` — efficient attention kernels (requires matching CUDA/PyTorch versions)
-- `vllm` — faster inference for large-scale evaluation
+- `vllm` — faster inference for large-scale evaluation (Linux + CUDA only; automatically excluded on macOS)
 
 ## Usage
 
@@ -193,16 +191,6 @@ python -m toksuite.scripts.super_vocab \
 | `{tokenizer}.yaml` | Tokenizer metadata |
 
 The `super_vocab.json` and `*_super_mapping.json` files are then used as the embedding initialization for model training (see Section 3.2 of the [paper](https://arxiv.org/abs/2512.20757)).
-
-## Results
-
-TokSuite produces novel findings about how tokenizer choice affects:
-- Downstream task performance across standard benchmarks (HellaSwag, ARC, PIQA)
-- Multilingual capabilities (XNLI, MGSM across 11 languages)
-- Robustness to real-world text perturbations
-- The relationship between intrinsic tokenizer properties (fertility, vocabulary overlap) and model performance
-
-Full results and analysis are available in the [paper](https://arxiv.org/abs/2512.20757).
 
 ## Citation
 
