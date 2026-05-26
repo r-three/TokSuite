@@ -27,7 +27,7 @@ echo "$REPO_HOME_DIR"
 set -euo pipefail
 IFS=$'\n\t'
 
-# --- Defaults (change via CLI flags) ---------------------------------------
+# --- Defaults (change if necessary) ---------------------------------------
 OUT_DIR="${REPO_HOME_DIR}/results/toksuite"
 MEM="18G"      		# memory for each srun job
 GPUS_PER_JOB=1 		# number of GPUs to request for each srun job

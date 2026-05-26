@@ -8,16 +8,18 @@
 #SBATCH --time=08:00:00
 
 ##############################################################################
-# eval_all_toksuite_models.sh
+# eval_toksuite_on_common_benchmarks.sh
 #
 # Purpose:
-#   Run `lm_eval` over a set of TokSuite models on multiple tasks using `srun`.
-#	To reproduce Table 1 in the paper.
+#   Run `lm_eval` for a set of TokSuite models on the common benchmark suite
+#   used in the paper, via `srun` on Slurm.
+#   Each model is evaluated with its matching tokenizer, and the task list is
+#   kept in one comma-separated string so it can be passed directly to lm_eval.
 #
 # Usage (run on a Slurm login node):
-#   sbatch eval_all_toksuite_models.sh
+#   sbatch eval_toksuite_on_common_benchmarks.sh
 #   or for interactive testing (no sbatch):
-#   ./eval_all_toksuite_models.sh -o /tmp/out --mem 20G --gpus 1 --dry-run
+#   ./eval_toksuite_on_common_benchmarks.sh -n
 ##############################################################################
 
 REPO_HOME_DIR="$(realpath "$(dirname "$(realpath "$0")")/..")"
@@ -51,6 +53,12 @@ models=(
 	"tokenmonster-englishcode-32000-consistent-v1"
 	"tiktoken-gpt-4o"
 	"CohereLabs-aya-expanse-8b"
+	"meta-llama-Llama-3.2-7B"
+	"meta-llama-Llama-3.2-300M"
+	"meta-llama-Llama-3.2-1B-textmatched"
+	"Qwen-Qwen3-8B-textmatched"
+	"common-pile-comma-v0.1-textmatched"
+	"google-gemma-2-2b-textmatched"
 )
 tokenizers=(
 	"google/gemma-2-2b"
@@ -67,9 +75,15 @@ tokenizers=(
 	"tokenmonster/englishcode-32000-consistent-v1"
 	"tiktoken/gpt-4o"
 	"CohereLabs/aya-expanse-8b"
+	"meta-llama/Llama-3.2-1B"
+	"meta-llama/Llama-3.2-1B"
+	"meta-llama/Llama-3.2-1B"
+	"Qwen/Qwen3-8B"
+	"common-pile/comma-v0.1-1t"
+	"google/gemma-2-2b"
 )
 
-TASKS="toksuite_math,toksuite_english,toksuite_stem,toksuite_turkish,toksuite_italian,toksuite_chinese,toksuite_farsi"
+TASKS="hellaswag,piqa,arc_easy,arc_challenge,boolq,commonsense_qa,xwinograd_en,xwinograd_zh,xcopa_it,xcopa_tr,xcopa_zh,xstorycloze_en,xstorycloze_zh,paws_en,paws_zh,hellaswag_it,xnli_zh,xnli_en,xnli_tr"
 
 # Load modules and activate venv if needed (adapt paths to your cluster).
 # These lines are cluster-specific and may be commented out on other systems.
