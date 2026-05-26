@@ -31,6 +31,13 @@ from toksuite.models import load_tokenizer as hf_load_tokenizer
 from toksuite.utils import system
 
 
+def load_flores_dataset(dataset_name, dataset_config, dataset_split, dataset_path=None, **kwargs):
+    if dataset_path:
+        from datasets import load_from_disk
+        return load_from_disk(dataset_path)
+    return load_dataset(dataset_name, dataset_config, split=dataset_split, **kwargs)
+
+
 
 Vocab = dict[str, list[int]]
 
@@ -435,7 +442,7 @@ class MistralTokenizer(Tokenizer):
             raise
 
 
-def plot_tokenizer_vocab_overlap_symmetric(tokenizer_names):
+def plot_tokenizer_vocab_overlap_symmetric(tokenizer_names, output_dir="."):
     """
     Plots a heatmap showing the Jaccard Index (vocabulary overlap) between different tokenizers.
 
@@ -449,19 +456,27 @@ def plot_tokenizer_vocab_overlap_symmetric(tokenizer_names):
     tokenizer_vocabularies = {}
     for name, tokenizer_dir in tokenizer_names.items():
         print("Retrieve the vocabulary for tokenizer: ", tokenizer_dir)
-        tokenizer = Tokenizer.load(tokenizer_dir)
-        vocab = tokenizer.get_vocab()
-        tokenizer_vocabularies[name] = set(vocab)
+        try:
+            tokenizer = Tokenizer.load(tokenizer_dir)
+            vocab = tokenizer.get_vocab()
+            tokenizer_vocabularies[name] = set(vocab)
+        except Exception as e:
+            print(f"Error loading tokenizer {name}: {e}")
+            print("-" * 40)
+
+    if not tokenizer_vocabularies:
+        print("No tokenizers loaded successfully, skipping vocab overlap.")
+        return None
 
     # Clean tokenizer display names (remove org prefix)
-    clean_names = [name.split("/")[-1] for name in tokenizer_names]
+    clean_names = [name.split("/")[-1] for name in tokenizer_vocabularies]
 
     # Compute Jaccard ratio matrix
     ratio_matrix = []
-    for name1 in tokenizer_names:
+    for name1 in tokenizer_vocabularies:
         row = []
         vocab1 = tokenizer_vocabularies[name1]
-        for name2 in tokenizer_names:
+        for name2 in tokenizer_vocabularies:
             vocab2 = tokenizer_vocabularies[name2]
             intersection = vocab1.intersection(vocab2)
             union = vocab1.union(vocab2)
@@ -471,7 +486,7 @@ def plot_tokenizer_vocab_overlap_symmetric(tokenizer_names):
 
     # Create DataFrame with clean names
     vocab_overlap_ratio_df = pd.DataFrame(ratio_matrix, index=clean_names, columns=clean_names)
-    vocab_overlap_ratio_df.to_csv("symmetric_vocab_overlap.csv")
+    vocab_overlap_ratio_df.to_csv(os.path.join(output_dir, "symmetric_vocab_overlap.csv"))
 
     # Print high precision overlap matrix
     print("\n" + "="*80)
@@ -540,11 +555,11 @@ def plot_tokenizer_vocab_overlap_symmetric(tokenizer_names):
     # Adjust layout manually to ensure nothing is cut off
     plt.subplots_adjust(left=0.2, bottom=0.25, top=0.9, right=0.95)
 
-    plt.savefig("symmetric_vocab_overlap.png")
+    plt.savefig(os.path.join(output_dir, "symmetric_vocab_overlap.png"))
     
     return vocab_overlap_ratio_df
 
-def plot_tokenizer_vocab_overlap_asymmetric(tokenizer_names):
+def plot_tokenizer_vocab_overlap_asymmetric(tokenizer_names, output_dir="."):
     """
     Plots a heatmap showing asymmetric vocabulary overlap between different tokenizers.
     For row i and column j: shows |V_i ∩ V_j| / |V_j| 
@@ -560,20 +575,28 @@ def plot_tokenizer_vocab_overlap_asymmetric(tokenizer_names):
     tokenizer_vocabularies = {}
     for name, tokenizer_dir in tokenizer_names.items():
         print("Retrieve the vocabulary for tokenizer: ", tokenizer_dir)
-        tokenizer = Tokenizer.load(tokenizer_dir)
-        vocab = tokenizer.get_vocab()
-        tokenizer_vocabularies[name] = set(vocab)
+        try:
+            tokenizer = Tokenizer.load(tokenizer_dir)
+            vocab = tokenizer.get_vocab()
+            tokenizer_vocabularies[name] = set(vocab)
+        except Exception as e:
+            print(f"Error loading tokenizer {name}: {e}")
+            print("-" * 40)
+
+    if not tokenizer_vocabularies:
+        print("No tokenizers loaded successfully, skipping vocab overlap.")
+        return None
 
     # Clean tokenizer display names (remove org prefix)
-    clean_names = [name.split("/")[-1] for name in tokenizer_names]
+    clean_names = [name.split("/")[-1] for name in tokenizer_vocabularies]
 
     # Compute asymmetric overlap ratio matrix
     # ratio_matrix[i][j] = |V_i ∩ V_j| / |V_j|
     ratio_matrix = []
-    for name1 in tokenizer_names:
+    for name1 in tokenizer_vocabularies:
         row = []
         vocab1 = tokenizer_vocabularies[name1]
-        for name2 in tokenizer_names:
+        for name2 in tokenizer_vocabularies:
             vocab2 = tokenizer_vocabularies[name2]
             intersection = vocab1.intersection(vocab2)
             # Asymmetric: intersection divided by vocab2 size (column tokenizer)
@@ -583,7 +606,7 @@ def plot_tokenizer_vocab_overlap_asymmetric(tokenizer_names):
 
     # Create DataFrame with clean names
     vocab_overlap_ratio_df = pd.DataFrame(ratio_matrix, index=clean_names, columns=clean_names)
-    vocab_overlap_ratio_df.to_csv("asymmetric_vocab_overlap.csv")
+    vocab_overlap_ratio_df.to_csv(os.path.join(output_dir, "asymmetric_vocab_overlap.csv"))
     
     # Find and print interesting statistics
     max_coverage = 0
@@ -660,7 +683,7 @@ def plot_tokenizer_vocab_overlap_asymmetric(tokenizer_names):
     # Adjust layout manually to ensure nothing is cut off
     plt.subplots_adjust(left=0.2, bottom=0.2, top=0.85, right=0.95)
 
-    plt.savefig("asymmetric_vocab_overlap.png")
+    plt.savefig(os.path.join(output_dir, "asymmetric_vocab_overlap.png"))
     
     return vocab_overlap_ratio_df
 
@@ -688,11 +711,13 @@ def compute_subword_fertility(
     sample_size: int = 10000,
     dataset_name: str = "Muennighoff/flores200",
     dataset_config: str = "all",
-    dataset_split: str = "dev"
+    dataset_split: str = "dev",
+    dataset_path: str = None,
+    output_dir: str = "."
 ):
     # Load dataset
-    dataset = load_dataset(dataset_name, dataset_config, split=dataset_split, trust_remote_code=True)
-    
+    dataset = load_flores_dataset(dataset_name, dataset_config, dataset_split, dataset_path=dataset_path, trust_remote_code=True)
+
     # Filter to keep only examples with all selected languages
     examples = [ex for ex in dataset if all(lang in ex and ex[lang].strip() for lang in language_keys.keys())]
     
@@ -707,7 +732,12 @@ def compute_subword_fertility(
 
     for tokenizer_name, tokenizer_dir in tokenizer_names.items():
         print(f"Processing tokenizer: {tokenizer_name}")
-        tokenizer = Tokenizer.load(tokenizer_dir)
+        try:
+            tokenizer = Tokenizer.load(tokenizer_dir)
+        except Exception as e:
+            print(f"Error loading tokenizer {tokenizer_name}: {e}")
+            print("-" * 40)
+            continue
 
         # --- Fertility ---
         fertility_scores = {}
@@ -739,7 +769,7 @@ def compute_subword_fertility(
         {model: metrics["fertility"] for model, metrics in all_results.items()},
         orient="index"
     )
-    df.to_csv("fertility_results.csv", index_label="model_name")
+    df.to_csv(os.path.join(output_dir, "fertility_results.csv"), index_label="model_name")
 
     return all_results
 
@@ -750,10 +780,12 @@ def compute_parity(
     dataset_name: str = "Muennighoff/flores200",
     dataset_config: str = "all",
     dataset_split: str = "dev",
-    ref_lang: str = "sentence_eng_Latn"
+    ref_lang: str = "sentence_eng_Latn",
+    dataset_path: str = None,
+    output_dir: str = "."
 ):
     # Load dataset
-    dataset = load_dataset(dataset_name, dataset_config, split=dataset_split)
+    dataset = load_flores_dataset(dataset_name, dataset_config, dataset_split, dataset_path=dataset_path)
 
     # Filter to keep only examples with all selected languages
     examples = [ex for ex in dataset if all(lang in ex and ex[lang].strip() for lang in language_keys.keys())]
@@ -767,7 +799,12 @@ def compute_parity(
 
     for tokenizer_name, tokenizer_dir in tokenizer_names.items():
         print(f"Processing tokenizer: {tokenizer_name}")
-        tokenizer = Tokenizer.load(tokenizer_dir)
+        try:
+            tokenizer = Tokenizer.load(tokenizer_dir)
+        except Exception as e:
+            print(f"Error loading tokenizer {tokenizer_name}: {e}")
+            print("-" * 40)
+            continue
 
         # --- Parity (relative to English) ---
         parity_scores = {}
@@ -794,7 +831,7 @@ def compute_parity(
         {model: metrics["parity_to_eng"] for model, metrics in all_results.items()},
         orient="index"
     )
-    df.to_csv("parity_results.csv", index_label="model_name")
+    df.to_csv(os.path.join(output_dir, "parity_results.csv"), index_label="model_name")
 
 
     return all_results
@@ -806,10 +843,12 @@ def compute_proportion_of_continued_words(
     dataset_name: str = "Muennighoff/flores200",
     dataset_config: str = "all",
     dataset_split: str = "dev",
-    ref_lang: str = "sentence_eng_Latn"
+    ref_lang: str = "sentence_eng_Latn",
+    dataset_path: str = None,
+    output_dir: str = "."
 ):
     # Load dataset
-    dataset = load_dataset(dataset_name, dataset_config, split=dataset_split, trust_remote_code=True)
+    dataset = load_flores_dataset(dataset_name, dataset_config, dataset_split, dataset_path=dataset_path, trust_remote_code=True)
 
     # Filter to keep only examples with all selected languages
     examples = [ex for ex in dataset if all(lang in ex and ex[lang].strip() for lang in language_keys.keys())]
@@ -823,7 +862,12 @@ def compute_proportion_of_continued_words(
 
     for tokenizer_name, tokenizer_dir in tokenizer_names.items():
         print(f"Processing tokenizer: {tokenizer_name}")
-        tokenizer = Tokenizer.load(tokenizer_dir)
+        try:
+            tokenizer = Tokenizer.load(tokenizer_dir)
+        except Exception as e:
+            print(f"Error loading tokenizer {tokenizer_name}: {e}")
+            print("-" * 40)
+            continue
 
         # --- Proportion of Continued Words ---
         cont_word_scores = {}
@@ -857,11 +901,11 @@ def compute_proportion_of_continued_words(
         {model: metrics["proportion_of_continued_words"] for model, metrics in all_results.items()},
         orient="index"
     )
-    df.to_csv("pcw_results.csv", index_label="model_name")
+    df.to_csv(os.path.join(output_dir, "pcw_results.csv"), index_label="model_name")
 
     return all_results
 
-def plot_fertility_scores(results, dataset_name):
+def plot_fertility_scores(results, dataset_name, output_dir="."):
     tokenizers = list(results.keys())
     all_languages = [set(results[tokenizer]["fertility"].keys()) for tokenizer in tokenizers]
     common_languages = set.intersection(*all_languages)  # consistent across all tokenizers
@@ -894,9 +938,9 @@ def plot_fertility_scores(results, dataset_name):
     fig.subplots_adjust(right=0.8)  # make space on the right
     ax.legend(fontsize=10, loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
-    plt.savefig("fertility.png")
+    plt.savefig(os.path.join(output_dir, "fertility.png"))
     
-def plot_parity_scores(results, dataset_name):
+def plot_parity_scores(results, dataset_name, output_dir="."):
     tokenizers = list(results.keys())
     for tokenizer in tokenizers:
       results[tokenizer]["parity_to_eng"]["eng_Latn"] = 1.0
@@ -931,9 +975,9 @@ def plot_parity_scores(results, dataset_name):
     fig.subplots_adjust(right=0.8)  # make space on the right
     ax.legend(fontsize=10, loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
-    plt.savefig("parity.png")
+    plt.savefig(os.path.join(output_dir, "parity.png"))
 
-def plot_pcw_scores(results, dataset_name):
+def plot_pcw_scores(results, dataset_name, output_dir="."):
     tokenizers = list(results.keys())
     all_languages = [set(results[tokenizer]["proportion_of_continued_words"].keys()) for tokenizer in tokenizers]
     common_languages = set.intersection(*all_languages)  # consistent across all tokenizers
@@ -966,7 +1010,7 @@ def plot_pcw_scores(results, dataset_name):
     fig.subplots_adjust(right=0.8)  # make space on the right
     ax.legend(fontsize=10, loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
-    plt.savefig("pcw.png")
+    plt.savefig(os.path.join(output_dir, "pcw.png"))
 
 
 def parse_tokenizer_argument(tokenizer_arg):
@@ -1212,14 +1256,29 @@ def main():
         help='Dataset split to use (default: dev)'
     )
     parser.add_argument(
+        '--dataset_path',
+        type=str,
+        default=None,
+        help='Local path to a pre-saved Arrow dataset (from dataset.save_to_disk()). '
+             'If provided, loaded with load_from_disk() instead of load_dataset().'
+    )
+    parser.add_argument(
+        '--output_dir',
+        type=str,
+        default=".",
+        help='Directory to save output CSV and PNG files (default: current directory)'
+    )
+    parser.add_argument(
         '--sample_sentence',
         type=str,
         default="Hello World",
         help='Sample sentence for tokenization'
     )
-    
+
     args = parser.parse_args()
-    
+
+    os.makedirs(args.output_dir, exist_ok=True)
+
     # Parse tokenizers and languages
     tokenizer_names = parse_tokenizer_argument(args.tokenizers)
     language_keys = parse_language_argument(args.languages)
@@ -1245,23 +1304,25 @@ def main():
     
     if 'vocab_overlap' in analyses:
         print("Computing vocabulary overlap (symmetric)...")
-        plot_tokenizer_vocab_overlap_symmetric(tokenizer_names)
+        plot_tokenizer_vocab_overlap_symmetric(tokenizer_names, output_dir=args.output_dir)
         print("Computing vocabulary overlap (asymmetric)...")
-        plot_tokenizer_vocab_overlap_asymmetric(tokenizer_names)
+        plot_tokenizer_vocab_overlap_asymmetric(tokenizer_names, output_dir=args.output_dir)
         print("-" * 50)
     
     if 'fertility' in analyses:
         print("Computing subword fertility...")
         fertility_results = compute_subword_fertility(
-            tokenizer_names, 
+            tokenizer_names,
             language_keys,
             sample_size=args.sample_size,
             dataset_name=args.dataset_name,
             dataset_config=args.dataset_config,
-            dataset_split=args.dataset_split
+            dataset_split=args.dataset_split,
+            dataset_path=args.dataset_path,
+            output_dir=args.output_dir
         )
         print("Plotting fertility scores...")
-        plot_fertility_scores(fertility_results, args.dataset_name)
+        plot_fertility_scores(fertility_results, args.dataset_name, output_dir=args.output_dir)
         print("-" * 50)
     
     if 'parity' in analyses:
@@ -1272,10 +1333,12 @@ def main():
             sample_size=args.sample_size,
             dataset_name=args.dataset_name,
             dataset_config=args.dataset_config,
-            dataset_split=args.dataset_split
+            dataset_split=args.dataset_split,
+            dataset_path=args.dataset_path,
+            output_dir=args.output_dir
         )
         print("Plotting parity scores...")
-        plot_parity_scores(parity_results, args.dataset_name)
+        plot_parity_scores(parity_results, args.dataset_name, output_dir=args.output_dir)
         print("-" * 50)
     
     if 'pcw' in analyses:
@@ -1286,10 +1349,12 @@ def main():
             sample_size=args.sample_size,
             dataset_name=args.dataset_name,
             dataset_config=args.dataset_config,
-            dataset_split=args.dataset_split
+            dataset_split=args.dataset_split,
+            dataset_path=args.dataset_path,
+            output_dir=args.output_dir
         )
         print("Plotting PCW scores...")
-        plot_pcw_scores(pcw_results, args.dataset_name)
+        plot_pcw_scores(pcw_results, args.dataset_name, output_dir=args.output_dir)
         print("-" * 50)
 
     if 'example_tokenizations' in analyses:
@@ -1297,7 +1362,7 @@ def main():
         tokenize_sentence_with_all_tokenizers(
             sentence=args.sample_sentence,
             tokenizer_names=TOKENIZER_NAMES,
-            output_file="tokenization_results.txt",
+            output_file=os.path.join(args.output_dir, "tokenization_results.txt"),
             print_results=True
         )
         print("-" * 50)  

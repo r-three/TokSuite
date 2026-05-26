@@ -27,7 +27,9 @@ dependencies = [
     "protobuf>=5.29.3",
     "blobfile>=3.0.0",
     "gradio",
-    "tokenmonster"
+    "tokenmonster",
+    "spacy",
+    "jieba"
 ]
 
 [build-system]

@@ -186,9 +186,23 @@ python -m toksuite.scripts.calculate_intrinsic_tokenizer_metrics \
 
 **`--analyses`**: `all`, or a comma-separated subset of: `vocab_sizes`, `vocab_overlap`, `fertility`, `parity`, `pcw`, `example_tokenizations`.
 
-**`--dataset_name`**: HuggingFace dataset to use for text-based analyses (default: `Muennighoff/flores200`). **`--sample_size`**: number of examples to sample (default: `10000`). **`--sample_sentence`**: sentence used for `example_tokenizations` (default: `"Hello World"`).
+**`--dataset_name`**: HuggingFace dataset to use for text-based analyses (default: `Muennighoff/flores200`). **`--sample_size`**: number of examples to sample (default: `10000`). **`--sample_sentence`**: sentence used for `example_tokenizations` (default: `"Hello World"`). **`--dataset_path`**: local path to a pre-saved Arrow dataset (see note below).
 
 Outputs are saved as CSV files and plots (`.png`) in the current directory.
+
+> **Note — Flores-200 compatibility:** `datasets >= 3.0` dropped support for Python-based loading scripts, but `Muennighoff/flores200` uses one. If you are running with `datasets >= 3.0`, loading the dataset will fail with `RuntimeError: Dataset scripts are no longer supported`. To work around this, save the dataset to disk once using an older version, then pass the path via `--dataset_path`:
+>
+> ```bash
+> pip install "datasets==2.21.0"
+> python -c "
+> from datasets import load_dataset
+> ds = load_dataset('Muennighoff/flores200', 'all', split='dev', trust_remote_code=True)
+> ds.save_to_disk('/path/to/flores200_dev')
+> "
+> pip install "datasets==3.6.0"   # restore your version
+> ```
+>
+> Then pass `--dataset_path /path/to/flores200_dev` when running the script. The `calculate_intrinsic_tokenizer_metrics.sh` convenience script handles this automatically on first run.
 
 ### Comparing Tokenizers
 
