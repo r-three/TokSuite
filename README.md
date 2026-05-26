@@ -111,51 +111,6 @@ toksuite = { path = "../tokenizers", editable = true }
 
 Evaluation is config-driven. Sample configs for all supported tasks are in `toksuite/configs/`.
 
-### Running Evaluation
-
-TokSuite uses a fork of [lm-evaluation-harness](https://github.com/r-three/lm-evaluation-harness) with multilingual and robustness task support built in.
-
-```bash
-# Evaluate on MGSM (multilingual math reasoning)
-uv run eval toksuite/configs/mgsm/mgsm_eval_llama8B.yaml
-
-# Evaluate on the TokSuite Robustness Benchmark
-uv run eval toksuite/configs/tokenization_robustness/eval_llama8B.yaml
-```
-
-You can override any config field from the command line, or create your own YAML config pointing to any HuggingFace model.
-
-#### Extracting tiktoken Vocabulary Files
-
-For tiktoken-based tokenizers (gpt-4o, gpt-4), Lingua — the tokenizer backend used during evaluation — requires a local `.tiktoken` file. Generate one before running evaluation on those models:
-
-```bash
-python -m toksuite.scripts.create_tiktoken gpt-4o \
-    --output vocabs/tiktoken-gpt-4o/gpt-4o.tiktoken
-```
-
-| Model / alias | Encoding |
-|---|---|
-| `gpt-4o`, `gpt-4o-mini` | `o200k_base` |
-| `gpt-4`, `gpt-3.5-turbo` | `cl100k_base` |
-| `gpt-3`, `gpt-2` | `r50k_base` |
-
-HuggingFace-backed tokenizers (Llama, Mistral, BLOOM, etc.) do not need this step.
-
-#### Running on an HPC Cluster (SLURM)
-
-Convenience SLURM scripts are provided for batch evaluation on an HPC cluster:
-
-```bash
-# Evaluate a single model across all tasks
-sbatch slurm_scripts/eval_supertoken_models.sh
-
-# Batch-evaluate all 14 TokSuite models across all tasks
-sbatch slurm_scripts/eval_supertoken_on_completion.sh
-```
-
-> **Before submitting**, update the paths, account name, and GPU partition at the top of each script. The defaults target the Killarney cluster.
-
 ### Computing Intrinsic Tokenizer Metrics
 
 Compute fertility, parity, proportion of continued words (PCW), and vocabulary overlap across tokenizers and languages:
@@ -203,6 +158,51 @@ Outputs are saved as CSV files and plots (`.png`) in the current directory.
 > ```
 >
 > Then pass `--dataset_path /path/to/flores200_dev` when running the script. The `calculate_intrinsic_tokenizer_metrics.sh` convenience script handles this automatically on first run.
+
+### Running Evaluation
+
+TokSuite uses a fork of [lm-evaluation-harness](https://github.com/r-three/lm-evaluation-harness) with multilingual and robustness task support built in.
+
+```bash
+# Evaluate on MGSM (multilingual math reasoning)
+uv run eval toksuite/configs/mgsm/mgsm_eval_llama8B.yaml
+
+# Evaluate on the TokSuite Robustness Benchmark
+uv run eval toksuite/configs/tokenization_robustness/eval_llama8B.yaml
+```
+
+You can override any config field from the command line, or create your own YAML config pointing to any HuggingFace model.
+
+#### Extracting tiktoken Vocabulary Files
+
+For tiktoken-based tokenizers (gpt-4o, gpt-4), Lingua — the tokenizer backend used during evaluation — requires a local `.tiktoken` file. Generate one before running evaluation on those models:
+
+```bash
+python -m toksuite.scripts.create_tiktoken gpt-4o \
+    --output vocabs/tiktoken-gpt-4o/gpt-4o.tiktoken
+```
+
+| Model / alias | Encoding |
+|---|---|
+| `gpt-4o`, `gpt-4o-mini` | `o200k_base` |
+| `gpt-4`, `gpt-3.5-turbo` | `cl100k_base` |
+| `gpt-3`, `gpt-2` | `r50k_base` |
+
+HuggingFace-backed tokenizers (Llama, Mistral, BLOOM, etc.) do not need this step.
+
+#### Running on an HPC Cluster (SLURM)
+
+Convenience SLURM scripts are provided for batch evaluation on an HPC cluster:
+
+```bash
+# Evaluate a single model across all tasks
+sbatch slurm_scripts/eval_supertoken_models.sh
+
+# Batch-evaluate all 14 TokSuite models across all tasks
+sbatch slurm_scripts/eval_supertoken_on_completion.sh
+```
+
+> **Before submitting**, update the paths, account name, and GPU partition at the top of each script. The defaults target the Killarney cluster.
 
 ### Comparing Tokenizers
 
