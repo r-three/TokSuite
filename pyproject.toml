@@ -90,5 +90,4 @@ dev = [
 
 
 [project.scripts]
-eval = "toksuite.scripts.eval:main"
 token-alysis = "toksuite.scripts.compare_tokenizers:main"

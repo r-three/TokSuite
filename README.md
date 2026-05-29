@@ -161,15 +161,7 @@ Outputs are saved as CSV files and plots (`.png`) in the current directory.
 
 ### Running Evaluation
 
-TokSuite uses a fork of [lm-evaluation-harness](https://github.com/r-three/lm-evaluation-harness) with multilingual and robustness task support built in.
-
-```bash
-# Evaluate on MGSM (multilingual math reasoning)
-uv run eval toksuite/configs/mgsm/mgsm_eval_llama8B.yaml
-
-# Evaluate on the TokSuite Robustness Benchmark
-uv run eval toksuite/configs/tokenization_robustness/eval_llama8B.yaml
-```
+TokSuite tasks are available on [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness/blob/95d580638385578c1c07fa554cf16ad7f5b5f460/lm_eval/tasks/toksuite/). We provide sample scripts to run evaluation in 
 
 You can override any config field from the command line, or create your own YAML config pointing to any HuggingFace model.
 
@@ -195,14 +187,22 @@ HuggingFace-backed tokenizers (Llama, Mistral, BLOOM, etc.) do not need this ste
 Convenience SLURM scripts are provided for batch evaluation on an HPC cluster:
 
 ```bash
-# Evaluate a single model across all tasks
-sbatch slurm_scripts/eval_supertoken_models.sh
+# Evaluate a single model across all tasks (interactive-style; edit flags inside script)
+sbatch slurm_scripts/eval_all_toksuite_models.sh
 
-# Batch-evaluate all 14 TokSuite models across all tasks
-sbatch slurm_scripts/eval_supertoken_on_completion.sh
+# Run the common-benchmarks suite across all TokSuite models
+sbatch slurm_scripts/eval_toksuite_on_common_benchmarks.sh
 ```
 
 > **Before submitting**, update the paths, account name, and GPU partition at the top of each script. The defaults target the Killarney cluster.
+
+Note on tokenizer backends:
+
+- The SLURM scripts auto-detect special tokenizer runtimes and pass a `tokenizer_backend` value to the evaluation harness via `--model_args`.
+- `tokenmonster` refers to the TokenMonster tokenizer (a custom implementation) and is handled by passing `tokenizer_backend=tokenmonster` so the harness uses the TokenMonster runtime.
+- `tekken` (the `mistralai-tekken` tokenizer in our models) is part of the Mistral family and is handled via the `mistral` backend (`tokenizer_backend=mistral`).
+
+If you add other non-standard tokenizers, update the detection logic in `slurm_scripts/eval_toksuite_on_common_benchmarks.sh` to set the correct `tokenizer_backend`.
 
 ### Comparing Tokenizers
 
