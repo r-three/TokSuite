@@ -28,7 +28,6 @@ class Config:
         default="meta-llama/Meta-Llama-3.1-8B-Instruct",
         metadata={"help": "Base model used."},
     )
-    # datasets: List[Union[str, Dict[str, Any], TaskConfig]] = field(
     datasets: List[str] = field(
         default_factory=list,
         metadata={
