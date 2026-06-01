@@ -301,6 +301,10 @@ lm_eval \
 --output_path "results/tokenization_robustness/v102-cleaned/supertoken/$model"
 ```
 
+## Plotting and Reproducibility
+Here we list ways to reproduce the figures from the paper:
+- Figure 3-4-5: Run `notebooks/intrinsic-metrics-plots.ipynb`
+
 ## Citation
 
 If you use TokSuite in your work please cite the paper below. BibTeX entries are provided for convenience.

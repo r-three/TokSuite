@@ -122,76 +122,6 @@ def setup_styles_matplotlib(custom_font):
     )
 
 
-def setup_styles_plotly(custom_font):
-    """Setup global styles for plotly"""
-    # Set up Plotly template
-    template = go.layout.Template()
-
-    # Define custom font settings for Plotly
-    font_settings = {
-        "family": "Atkinson Hyperlegible, Arial, sans-serif",
-        "size": NORMAL_FONT,
-        "color": "#333333",
-    }
-
-    # Set the global font
-    template.layout.font = font_settings
-
-    # Set title font
-    template.layout.title = {
-        "font": {
-            "family": font_settings["family"],
-            "size": TITLE_FONT,
-            "color": font_settings["color"],
-        },
-        "x": 0.5,  # Center title
-        "xanchor": "center",
-    }
-
-    # Set axis styling
-    axis_settings = {
-        "titlefont": {
-            "family": font_settings["family"],
-            "size": TITLE_FONT,
-            "color": font_settings["color"],
-        },
-        "tickfont": {
-            "family": font_settings["family"],
-            "size": NORMAL_FONT,
-            "color": font_settings["color"],
-        },
-        "gridcolor": "#E5E5E5",  # Similar to whitegrid in seaborn
-        "linecolor": "#E5E5E5",
-    }
-
-    # Apply axis settings to template
-    template.layout.xaxis = axis_settings
-    template.layout.yaxis = axis_settings
-
-    # Set legend styling
-    template.layout.legend = {
-        "font": {
-            "family": font_settings["family"],
-            "size": NORMAL_FONT,
-            "color": font_settings["color"],
-        },
-        "bgcolor": "rgba(255, 255, 255, 0.5)",
-        "bordercolor": "#E5E5E5",
-        "borderwidth": 1,
-    }
-
-    # Set plot background
-    template.layout.plot_bgcolor = "white"
-    template.layout.paper_bgcolor = "white"
-
-    # Apply margin
-    template.layout.margin = {"l": 60, "r": 40, "t": 60, "b": 60}
-
-    # Set the template as default
-    pio.templates["custom"] = template
-    pio.templates.default = "custom"
-
-
 def setup_styles():
     font_path = download_font()
     # Find all Atkinson Hyperlegible font files you have
@@ -206,7 +136,6 @@ def setup_styles():
     # Add the font file to matplotlib's font manager
     custom_font = fm.FontProperties(fname=font_path)
     setup_styles_matplotlib(custom_font)
-    setup_styles_plotly(custom_font)
 
 
 # Define base colors for each model family
