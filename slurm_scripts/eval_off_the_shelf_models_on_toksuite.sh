@@ -8,18 +8,16 @@
 #SBATCH --time=08:00:00
 
 ##############################################################################
-# eval_toksuite_on_common_benchmarks.sh
+# eval_off_the_shelf_models_on_toksuite.sh
 #
 # Purpose:
-#   Run `lm_eval` for a set of TokSuite models on the common benchmark suite
-#   used in the paper, via `srun` on Slurm.
-#   Each model is evaluated with its matching tokenizer, and the task list is
-#   kept in one comma-separated string so it can be passed directly to lm_eval.
+#   Run `lm_eval` over a set of TokSuite models on multiple tasks using `srun`.
+#	To reproduce Table 1 in the paper.
 #
 # Usage (run on a Slurm login node):
-#   sbatch slurm_scripts/eval_toksuite_on_common_benchmarks.sh
+#   sbatch slurm_scripts/eval_off_the_shelf_models_on_toksuite.sh
 #   or for interactive testing (no sbatch):
-#   bash slurm_scripts/eval_toksuite_on_common_benchmarks.sh 
+#   bash slurm_scripts/eval_off_the_shelf_models_on_toksuite.sh
 ##############################################################################
 
 REPO_HOME_DIR="$(realpath "$(dirname "$(realpath "$0")")/..")"
@@ -33,60 +31,80 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # --- Defaults (change if necessary) ---------------------------------------
-OUT_DIR="${REPO_HOME_DIR}/results/toksuite/on_common_benchmarks"
+OUT_DIR="${REPO_HOME_DIR}/results/toksuite/off_the_shelf_on_toksuite"
 MEM="18G"      		# memory for each srun job
 GPUS_PER_JOB=1 		# number of GPUs to request for each srun job
 CPUS_PER_TASK=1
 TIME_PER_JOB="60" 	# minutes, toksuite is usually pretty quick to evaluate
-DRY_RUN=0 			# Set to 1 to print commands without executing them (for testing)
+DRY_RUN=0			# Set to 1 to print commands without executing them (for testing)
 
-# Main TokSuite models/tokenizers 
-models=(
-	"google-gemma-2-2b"
-	"common-pile-comma-v0.1"
-	"meta-llama-Llama-3.2-1B"
-	"microsoft-Phi-3-mini-4k-instruct"
-	"gpt2"
-	"bigscience-bloom"
-	"facebook-xglm-564M"
-	"mistralai-tekken"
-	"google-byt5-small"
-	"google-bert-bert-base-multilingual-cased"
-	"Qwen-Qwen3-8B"
-	"tokenmonster-englishcode-32000-consistent-v1"
-	"tiktoken-gpt-4o"
-	"CohereLabs-aya-expanse-8b"
-	"meta-llama-Llama-3.2-7B"
-	"meta-llama-Llama-3.2-300M"
-	"meta-llama-Llama-3.2-1B-textmatched"
-	"Qwen-Qwen3-8B-textmatched"
-	"common-pile-comma-v0.1-textmatched"
-	"google-gemma-2-2b-textmatched"
-)
+# Main off-the-shelf models/tokenizers 
+
 tokenizers=(
 	"google/gemma-2-2b"
+	"google/gemma-2-2b-it"
 	"common-pile/comma-v0.1-1t"
 	"meta-llama/Llama-3.2-1B"
-	"microsoft/Phi-3-mini-4k-instruct"
-	"gpt2"
+	"meta-llama/Llama-3.2-1B-Instruct"
+	"meta-llama/Llama-3.2-3B"
+	"meta-llama/Llama-3.2-3B-Instruct"
+	"meta-llama/Llama-3.1-8B"
+	"meta-llama/Llama-3.1-8B-Instruct"
+	"openai-community/gpt2"
 	"bigscience/bloom"
 	"facebook/xglm-564M"
 	"mistralai/tekken"
 	"google/byt5-small"
 	"google-bert/bert-base-multilingual-cased"
-	"Qwen/Qwen3-8B"
-	"tokenmonster/englishcode-32000-consistent-v1"
-	"tiktoken/gpt-4o"
+	"Qwen/Qwen3-1.7B"
+	"Qwen/Qwen3-1.7B-Base"
 	"CohereLabs/aya-expanse-8b"
-	"meta-llama/Llama-3.2-1B"
-	"meta-llama/Llama-3.2-1B"
-	"meta-llama/Llama-3.2-1B"
-	"Qwen/Qwen3-8B"
-	"common-pile/comma-v0.1-1t"
-	"google/gemma-2-2b"
+	"microsoft/phi-1_5"
+	"microsoft/Phi-3-mini-4k-instruct"
+	"Qwen/Qwen3-1.7B-Base"
+	"Qwen/Qwen3-0.6B-Base"
+	"Qwen/Qwen3-4B-Base"
+	"Qwen/Qwen3-8B-Base"
+	"Qwen/Qwen3-14B-Base"
+	"Qwen/Qwen3-30B-A3B-Base"
+	"meta-llama/Llama-3.2-3B"
+	"google/gemma-2-9b"
+	"google/gemma-2-27b"
 )
+models=(
+	"google/gemma-2-2b"
+	"google/gemma-2-2b-it"
+	"common-pile/comma-v0.1-1t"
+	"meta-llama/Llama-3.2-1B"
+	"meta-llama/Llama-3.2-1B-Instruct"
+	"meta-llama/Llama-3.2-3B"
+	"meta-llama/Llama-3.2-3B-Instruct"
+	"meta-llama/Llama-3.1-8B"
+	"meta-llama/Llama-3.1-8B-Instruct"
+	"openai-community/gpt2"
+	"bigscience/bloom"
+	"facebook/xglm-564M"
+	"mistralai/tekken"
+	"google/byt5-small"
+	"google-bert/bert-base-multilingual-cased"
+	"Qwen/Qwen3-1.7B"
+	"Qwen/Qwen3-1.7B-Base"
+	"CohereLabs/aya-expanse-8b"
+	"microsoft/phi-1_5"
+	"microsoft/Phi-3-mini-4k-instruct"
+	"Qwen/Qwen3-1.7B-Base"
+	"Qwen/Qwen3-0.6B-Base"
+	"Qwen/Qwen3-4B-Base"
+	"Qwen/Qwen3-8B-Base"
+	"Qwen/Qwen3-14B-Base"
+	"Qwen/Qwen3-30B-A3B-Base"
+	"meta-llama/Llama-3.2-3B"
+	"google/gemma-2-9b"
+	"google/gemma-2-27b"
+)
+## Also bolmo and BLT
 
-TASKS="hellaswag,piqa,arc_easy,arc_challenge,boolq,commonsense_qa,xwinograd_en,xwinograd_zh,xcopa_it,xcopa_tr,xcopa_zh,xstorycloze_en,xstorycloze_zh,paws_en,paws_zh,hellaswag_it,xnli_zh,xnli_en,xnli_tr,global_piqa_parallel_cloze_pes_arab,global_piqa_parallel_cloze_cmn_hans,global_piqa_parallel_cloze_ita_latn,global_piqa_parallel_cloze_tur_latn"
+TASKS="toksuite_math,toksuite_english,toksuite_stem,toksuite_turkish,toksuite_italian,toksuite_chinese,toksuite_farsi"
 
 # Load modules and activate venv if needed (adapt paths to your cluster).
 # These lines are cluster-specific and may be commented out on other systems.
@@ -111,17 +129,6 @@ for i in "${!models[@]}"; do
 	model="${models[i]}"
 	tokenizer="${tokenizers[i]}"
 	hf_out_path="toksuite/$model"
-		tokenizer_backend="hf"
-		# Use a case statement for pattern matching (safer and works when
-		# patterns contain wildcards). Map known tokenizer names to the
-		# corresponding backend strings used by the evaluation harness.
-		case "$tokenizer" in
-			*tiktoken*) tokenizer_backend="tiktoken" ;;
-			*tokenmonster*) tokenizer_backend="tokenmonster" ;;
-			*mistralai*|*tekken*) tokenizer_backend="mistral" ;;
-			*) tokenizer_backend="hf" ;;
-		esac
-	
 	run_name="$(basename "$model")-$(date +%s)"
 
 	wandb_args=(
@@ -130,8 +137,8 @@ for i in "${!models[@]}"; do
 	)
 	common_args=(
 		--model hf
+		--model_args "pretrained=${hf_out_path},tokenizer=${tokenizer},trust_remote_code=true,dtype=bfloat16"
 		--device cuda
-		--model_args "pretrained=${hf_out_path},tokenizer=${tokenizer},tokenizer_backend=${tokenizer_backend},trust_remote_code=true,dtype=bfloat16"
 		--verbosity DEBUG
 		--batch_size 1
 	)
@@ -140,7 +147,7 @@ for i in "${!models[@]}"; do
 	srun_cmd=(srun --ntasks=1 --nodes=1 --gres=gpu:l40s:${GPUS_PER_JOB} --cpus-per-task ${CPUS_PER_TASK} --mem=${MEM} --time ${TIME_PER_JOB} --job-name="${run_name}" -o "$OUT_DIR/logs/${run_name}_%j_%t.log" -e "$OUT_DIR/logs/${run_name}_%j_%t.err" lm_eval)
 
 	# Append lm_eval arguments
-	srun_cmd+=("${common_args[@]}" --log_samples --tasks "$TASKS" "${wandb_args[@]}" --output_path "$OUT_DIR")
+	srun_cmd+=("${common_args[@]}"  --tasks "$TASKS" "${wandb_args[@]}" --output_path "$OUT_DIR")
 
 	echo "----"
 	echo "Model: $model"
@@ -153,7 +160,7 @@ for i in "${!models[@]}"; do
 	if [ "$DRY_RUN" -eq 1 ]; then
 		echo "(dry-run) skipping execution"
 	else
-		cd $SBATCH_SUBMISSION_DIR
+		cd "$SBATCH_SUBMISSION_DIR"
 		"${srun_cmd[@]}" &
 		pids+=($!)
 		job_names+=("$model")

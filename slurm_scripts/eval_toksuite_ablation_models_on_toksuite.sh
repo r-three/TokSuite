@@ -15,12 +15,14 @@
 #	To reproduce Table 1 in the paper.
 #
 # Usage (run on a Slurm login node):
-#   sbatch eval_toksuite_ablation_models_on_toksuite.sh
+#   sbatch slurm_scripts/eval_toksuite_ablation_models_on_toksuite.sh
 #   or for interactive testing (no sbatch):
-#   ./eval_toksuite_ablation_models_on_toksuite.sh -o /tmp/out --mem 20G --gpus 1 --dry-run
+#  bash  slurm_scripts/eval_toksuite_ablation_models_on_toksuite.sh 
 ##############################################################################
 
 REPO_HOME_DIR="$(realpath "$(dirname "$(realpath "$0")")/..")"
+SBATCH_SUBMISSION_DIR="$REPO_HOME_DIR"
+SBATCH_SUBMISSION_DIR="$PROJECT"
 cd "$REPO_HOME_DIR"
 echo "$REPO_HOME_DIR"
 
@@ -28,7 +30,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # --- Defaults (change if necessary) ---------------------------------------
-OUT_DIR="${REPO_HOME_DIR}/results/toksuite"
+OUT_DIR="${REPO_HOME_DIR}/results/toksuite/ablations_on_toksuite"
 MEM="18G"      		# memory for each srun job
 GPUS_PER_JOB=1 		# number of GPUs to request for each srun job
 CPUS_PER_TASK=1
@@ -58,7 +60,7 @@ TASKS="toksuite_math,toksuite_english,toksuite_stem,toksuite_turkish,toksuite_it
 
 # Load modules and activate venv if needed (adapt paths to your cluster).
 # These lines are cluster-specific and may be commented out on other systems.
-# module load slurm/killarney/24.05.7 StdEnv/2023 gcc/13.3 openmpi/5.0.3 cuda/12.6 python/3.10.13 
+# module load slurm/killarney/25.05.6StdEnv/2023 gcc/13.3 openmpi/5.0.3 cuda/12.6 python/3.10.13 
 # source "$REPO_HOME_DIR/.venv/bin/activate" 
 
 mkdir -p "$OUT_DIR/logs"
@@ -73,16 +75,18 @@ if [ ${#models[@]} -ne ${#tokenizers[@]} ]; then
 fi
 
 # Iterate models and submit srun evaluation jobs
+pids=()
+job_names=()
 for i in "${!models[@]}"; do
 	model="${models[i]}"
 	tokenizer="${tokenizers[i]}"
 	hf_out_path="toksuite/$model"
 	run_name="$(basename "$model")-$(date +%s)"
 
-		wandb_args=(
-			--wandb_args
-			"project=toksuite-reeval,name=$run_name"
-		)
+	wandb_args=(
+		--wandb_args
+		"project=toksuite-reeval,name=$run_name"
+	)
 	common_args=(
 		--model hf
 		--model_args "pretrained=${hf_out_path},tokenizer=${tokenizer},trust_remote_code=true,dtype=bfloat16"
@@ -95,7 +99,7 @@ for i in "${!models[@]}"; do
 	srun_cmd=(srun --ntasks=1 --nodes=1 --gres=gpu:l40s:${GPUS_PER_JOB} --cpus-per-task ${CPUS_PER_TASK} --mem=${MEM} --time ${TIME_PER_JOB} --job-name="${run_name}" -o "$OUT_DIR/logs/${run_name}_%j_%t.log" -e "$OUT_DIR/logs/${run_name}_%j_%t.err" lm_eval)
 
 	# Append lm_eval arguments
-		srun_cmd+=("${common_args[@]}" --log_samples --tasks "$TASKS" "${wandb_args[@]}" --output_path "$OUT_DIR")
+	srun_cmd+=("${common_args[@]}" --log_samples --tasks "$TASKS" "${wandb_args[@]}" --output_path "$OUT_DIR")
 
 	echo "----"
 	echo "Model: $model"
@@ -108,10 +112,25 @@ for i in "${!models[@]}"; do
 	if [ "$DRY_RUN" -eq 1 ]; then
 		echo "(dry-run) skipping execution"
 	else
+		cd "$SBATCH_SUBMISSION_DIR"
 		"${srun_cmd[@]}" &
+		pids+=($!)
+		job_names+=("$model")
 	fi
 done
 
-wait
+failed_jobs=()
+for i in "${!pids[@]}"; do
+	wait "${pids[i]}" || failed_jobs+=("${job_names[i]}")
+done
 
-echo "All jobs submitted. Logs: $OUT_DIR/logs"
+if [ ${#failed_jobs[@]} -gt 0 ]; then
+	echo "FAILED jobs (${#failed_jobs[@]}):"
+	for job in "${failed_jobs[@]}"; do
+		echo "  - $job"
+	done
+	exit 1
+else
+	echo "All ${#job_names[@]} jobs completed successfully."
+fi
+echo "Logs: $OUT_DIR/logs"
