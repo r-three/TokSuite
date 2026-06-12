@@ -8,18 +8,16 @@ import argparse
 import collections
 import functools
 import json
+import logging
 import operator as op
 import os
 import re
-import logging
 
-import tokenizers
 import transformers
 import yaml
 
-from toksuite.models import load_tokenizer as hf_load_tokenizer
+import tokenizers
 from toksuite.utils import system
-
 
 Vocab = dict[str, list[int]]
 
@@ -111,12 +109,7 @@ class HFTokenizer(Tokenizer):
 
     @classmethod
     def load(cls, name):
-        if system.get_host() == system.Hosts.vector:
-            name = system.VECTOR_HF_MAPPING.get(name, name)
-        try:
-            tok = hf_load_tokenizer(name)
-        except:
-            tok = transformers.AutoTokenizer.from_pretrained(name)
+        tok = transformers.AutoTokenizer.from_pretrained(name)
         sts = getattr(tok, "special_tokens_map", {})
         if "bert" in name:
             bos_str = sts.get("cls_token")

@@ -7,9 +7,6 @@ that is directly compatible with lm-evaluation-harness.
 It creates parquet files and creates corresponding yaml files in the lm_eval directory
 """
 
-## TODO: do i need to add the subset config to daaset card
-## TODO: language collections
-# TODO: add lang fitlering??
 import enum
 import glob
 import json
@@ -30,12 +27,12 @@ import yaml
 from cv2 import add
 from datasets import Dataset
 from git import Tree
+from toksuite.scripts.lingua_tokenizers import Tokenizer, build_tokenizer
 from transformers import AutoModel, AutoTokenizer
 
 # For tokenizer loading
 from toksuite.experiment_config import load_config
 from toksuite.logging.logger import setup_logger
-from toksuite.scripts.lingua_tokenizers import Tokenizer, build_tokenizer
 from toksuite.scripts.upload_dataset_to_hf import (
     HFUploadConfig,
     get_dataset_name,

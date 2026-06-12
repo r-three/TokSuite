@@ -1,34 +1,32 @@
-import sys
-import os
+import argparse
 import collections
 import functools
-import operator as op
 import json
+import operator as op
+import os
 import re
-import argparse
+import sys
 
 # Add the current directory (project_root) to sys.path
 sys.path.append(os.path.abspath("."))
 
-from datasets import load_dataset
-from toksuite.utils.word_tokenizers import TibetanTokenizer, load_tokenizer_assignments, load_word_tokenizer
-
-import enum
 import logging
-import tokenizers
-from typing import Dict, Generator, List, Optional, Tuple, Union
-from typing_extensions import TypeAlias
 import random
-import transformers
-from transformers import AutoTokenizer
-import pandas as pd
-import seaborn as sns
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
+import transformers
 from datasets import load_dataset
+from transformers import AutoTokenizer
 
-from toksuite.models import load_tokenizer as hf_load_tokenizer
+import tokenizers
 from toksuite.utils import system
+from toksuite.utils.word_tokenizers import (
+    load_tokenizer_assignments,
+    load_word_tokenizer,
+)
 
 
 def load_flores_dataset(dataset_name, dataset_config, dataset_split, dataset_path=None, **kwargs):
@@ -261,12 +259,7 @@ class HFTokenizer(Tokenizer):
 
     @classmethod
     def load(cls, name):
-        if system.get_host() == system.Hosts.vector:
-            name = system.VECTOR_HF_MAPPING.get(name, name)
-        try:
-            tok = hf_load_tokenizer(name)
-        except:
-            tok = transformers.AutoTokenizer.from_pretrained(name)
+        tok = AutoTokenizer.from_pretrained(name)
         sts = getattr(tok, "special_tokens_map", {})
         if "bert" in name:
             bos_str = sts.get("cls_token")

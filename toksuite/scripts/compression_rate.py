@@ -1,20 +1,15 @@
 import json
-import os
 import math
+import os
 from dataclasses import dataclass, field
 
 import datasets
-from transformers import AutoTokenizer
+from compare_tokenizers import setup_tokenizer_environment
 from tqdm import tqdm
+from transformers import AutoTokenizer
 
 from toksuite.config import Config
 from toksuite.experiment_config import load_config
-from toksuite.logging.logger import setup_logger
-from toksuite.logging.plot_utils import setup_styles
-from toksuite.models import load_tokenizer
-from toksuite.utils.system import VECTOR_HF_MAPPING
-
-from compare_tokenizers import setup_tokenizer_environment
 
 
 @dataclass

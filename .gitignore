@@ -233,6 +233,8 @@ ENV/
 *.csv
 *.txt
 .vscode/.envFile
-results/*
+# results/*
+results/toksuite/logs/
 uv.lock
 toksuite/scripts/vocabs/*
+notebooks/AtkinsonHyperlegible-Regular.ttf
