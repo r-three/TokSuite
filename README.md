@@ -11,10 +11,16 @@
 <p align="center">
   <a href="https://github.com/r-three/TokSuite">
     <img alt="GitHub" src="https://img.shields.io/badge/GitHub-Repository-181717?logo=github"></a>
+  <a href="https://github.com/r-three/lingua/tree/toksuite">
+    <img alt="GitHub" src="https://img.shields.io/badge/Training-Repository-181717?logo=github"></a>
   <a href="https://huggingface.co/collections/toksuite/toksuite-model-collection">
     <img alt="HuggingFace Models" src="https://img.shields.io/badge/🤗-Models-yellow"></a>
   <a href="https://huggingface.co/collections/toksuite/toksuite-benchmarks">
     <img alt="HuggingFace Benchmarks" src="https://img.shields.io/badge/🤗-Benchmarks-blue"></a>
+  <a href="https://huggingface.co/spaces/toksuite/leaderboard">
+    <img alt="Leaderboard" src="https://img.shields.io/badge/🤗-Leaderboard-orange"></a>
+  <a href="https://huggingface.co/spaces/toksuite/tokenizer-comparison">
+    <img alt="Tokenizer Comparison" src="https://img.shields.io/badge/🤗-Tokenizer%20Comparison-purple"></a>
   <a href="https://arxiv.org/abs/2512.20757">
     <img alt="arXiv" src="https://img.shields.io/badge/arXiv-2512.20757-b31b1b"></a>
   <a href="https://github.com/r-three/TokSuite/blob/main/LICENSE">
@@ -33,9 +39,33 @@
 
 See our paper for details: https://arxiv.org/abs/2512.20757
 
+## Table of Contents
+
+- [Models](#models)
+- [Datasets](#datasets)
+- [Spaces](#spaces)
+  - [Leaderboard](#leaderboard)
+  - [Tokenizer Comparison](#tokenizer-comparison)
+  - [TokSuite Pretraining Data](#toksuite-pretraining-data)
+  - [TokSuite Robustness Benchmark](#toksuite-robustness-benchmark)
+- [Set-up](#set-up)
+  - [On Killarney](#on-killarney)
+- [Usage](#usage)
+  - [Computing Intrinsic Tokenizer Metrics](#computing-intrinsic-tokenizer-metrics)
+  - [Running Evaluation](#running-evaluation)
+    - [Running on an HPC Cluster (SLURM)](#running-on-an-hpc-cluster-slurm)
+  - [Comparing Tokenizers](#comparing-tokenizers)
+- [Training](#training)
+  - [Extracting tiktoken Vocabulary Files](#extracting-tiktoken-vocabulary-files)
+  - [Building the Super-Vocabulary](#building-the-super-vocabulary)
+- [Converting Supertoken Models](#converting-supertoken-models)
+- [Plotting and Reproducibility](#plotting-and-reproducibility)
+- [Citation](#citation)
+- [License](#license)
+
 ## Models
 
-We release 14 controlled 1B-parameter models, each trained with a different tokenizer under identical conditions (Llama-3.2-1B architecture, ~100B token training budget):
+We release 14 controlled 1B-parameter models, each trained with a different tokenizer under identical conditions (Llama-3.2-1B architecture, ~100B token training budget). Browse evaluation results on the [leaderboard](https://huggingface.co/spaces/toksuite/leaderboard).
 
 | Tokenizer | Method | Vocab. Size | Languages | HuggingFace |
 |-----------|--------|-------------|-----------|-------------|
@@ -70,13 +100,23 @@ A parallel collection of multiple-choice text completion questions paired with a
 
 Available at: [toksuite/toksuite-robustness](https://huggingface.co/collections/toksuite/toksuite-benchmarks)
 
+## Spaces
+
+### Leaderboard
+
+Explore evaluation results across all 14 TokSuite models and tasks: [toksuite/leaderboard](https://huggingface.co/spaces/toksuite/leaderboard)
+
+### Tokenizer Comparison
+
+Interactively visualize how different tokenizers segment any text: [toksuite/tokenizer-comparison](https://huggingface.co/spaces/toksuite/tokenizer-comparison)
+
 ## Set-up
-We recommend using uv (install it with `pip install uv` if not already available).
+We recommend using uv (install it with `pip install uv` or install from [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) if not already available). Use r-three lm-eval fork until [this](https://github.com/EleutherAI/lm-evaluation-harness/pull/3834) PR is merged to lm-eval. 
 
 ### On Killarney
-On the Killarney cluster, you need to first load the following modules:
+On the Killarney cluster (Compute Canada), you need to first load the following modules:
 ```bash
-module load slurm/killarney/24.05.7 StdEnv/2023  gcc/13.3  openmpi/5.0.3 cuda/12.6 python/3.10.13
+module load StdEnv/2023  gcc/13.3  openmpi/5.0.3 cuda/12.6 python/3.10.13
 ```
 and for the first time you run the code, you need to install the packages to the system:
 ```bash
@@ -85,7 +125,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ```bash
 # If you don't have a virtual environment already, you can either
-# 1. Install the packages to the system
+# 1. Install the packages to the system (though we don't recommend this)
 uv pip install -e . --system
 
 # 2. Create a venv with uv
@@ -104,12 +144,10 @@ If you have another uv venv, you can add this package to the original projects `
 tokenizers = ["toksuite"]
 
 [tool.uv.sources]
-toksuite = { path = "../tokenizers", editable = true }
+toksuite = { path = "../toksuite", editable = true }
 ```
 
 ## Usage
-
-Evaluation is config-driven. Sample configs for all supported tasks are in `toksuite/configs/`.
 
 ### Computing Intrinsic Tokenizer Metrics
 
@@ -161,26 +199,11 @@ Outputs are saved as CSV files and plots (`.png`) in the current directory.
 
 ### Running Evaluation
 
-TokSuite tasks are available on [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness/blob/95d580638385578c1c07fa554cf16ad7f5b5f460/lm_eval/tasks/toksuite/). We provide sample scripts to run evaluation in 
+TokSuite tasks are available on [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness/blob/95d580638385578c1c07fa554cf16ad7f5b5f460/lm_eval/tasks/toksuite/). We provide sample scripts to run evaluation under [.slurm_scripts](./slurm_scripts/).
 
 You can override any config field from the command line, or create your own YAML config pointing to any HuggingFace model.
 
-#### Extracting tiktoken Vocabulary Files
-
-For tiktoken-based tokenizers (gpt-4o, gpt-4), Lingua — the tokenizer backend used during evaluation — requires a local `.tiktoken` file. Generate one before running evaluation on those models:
-
-```bash
-python -m toksuite.scripts.create_tiktoken gpt-4o \
-    --output vocabs/tiktoken-gpt-4o/gpt-4o.tiktoken
-```
-
-| Model / alias | Encoding |
-|---|---|
-| `gpt-4o`, `gpt-4o-mini` | `o200k_base` |
-| `gpt-4`, `gpt-3.5-turbo` | `cl100k_base` |
-| `gpt-3`, `gpt-2` | `r50k_base` |
-
-HuggingFace-backed tokenizers (Llama, Mistral, BLOOM, etc.) do not need this step.
+Note that you need the most recent lm-eval to run evaluation for tokenmonster, tiktoken, and tekken TokSuite models.
 
 #### Running on an HPC Cluster (SLURM)
 
@@ -206,7 +229,7 @@ If you add other non-standard tokenizers, update the detection logic in `slurm_s
 
 ### Comparing Tokenizers
 
-Analyze and visualize differences across tokenizers:
+Analyze and visualize how different tokenizers segment text interactively on the [Tokenizer Comparison Space](https://huggingface.co/spaces/toksuite/tokenizer-comparison), or run locally:
 
 ```bash
 token-alysis \
@@ -214,11 +237,34 @@ token-alysis \
   --text "Your input text here"
 ```
 
+
+## Training
+We use lingua framework to train our models, please refer to [r-three/lingua](https://github.com/r-three/lingua/tree/toksuite) for more information on training. 
+
+In this repository, we provide auxilary files for Lingua.
+
+#### Extracting tiktoken Vocabulary Files
+
+For tiktoken-based tokenizers (gpt-4o, gpt-4), Lingua — the tokenizer backend used during evaluation — requires a local `.tiktoken` file. Generate one before running evaluation on those models:
+
+```bash
+python -m toksuite.scripts.create_tiktoken gpt-4o \
+    --output vocabs/tiktoken-gpt-4o/gpt-4o.tiktoken
+```
+
+| Model / alias | Encoding |
+|---|---|
+| `gpt-4o`, `gpt-4o-mini` | `o200k_base` |
+| `gpt-4`, `gpt-3.5-turbo` | `cl100k_base` |
+| `gpt-3`, `gpt-2` | `r50k_base` |
+
+HuggingFace-backed tokenizers (Llama, Mistral, BLOOM, etc.) do not need this step.
+
 ### Building the Super-Vocabulary
 
-To reproduce the TokSuite models, you first need to build the **super vocabulary** described in Section 3.2 of the paper. The super vocabulary is the union of all 14 tokenizer vocabularies (normalized to UTF-8 bytes), along with per-tokenizer alignment mappings used to initialize shared embedding weights across models.
+To reproduce the TokSuite models, you first need to build the **super vocabulary** described in Section 3.2 of the paper. The super vocabulary is the union of all 14 tokenizer vocabularies (normalized to UTF-8 bytes), along with per-tokenizer alignment mappings used to initialize shared embedding weights across models. For convenience we provide initial checkpoints for every model used in the paper at [toksuite/initializations](https://huggingface.co/collections/toksuite/initializations), please note that this supervocab contains 19 models (5 more than the models used in the paper) but the corresponding initializations for each model is consistent.
 
-Run the convenience script, which handles the tiktoken extraction and vocab build in one step:
+Run the script, which handles the tiktoken extraction and vocab build in one step:
 
 ```bash
 bash toksuite/scripts/build_super_vocab.sh
@@ -260,7 +306,7 @@ python -m toksuite.scripts.super_vocab \
 The `super_vocab.json` and `*_super_mapping.json` files are then used as the embedding initialization for model training (see Section 3.2 of the [paper](https://arxiv.org/abs/2512.20757)).
 
 
-## Converting Supertoken Models
+## Converting Lingua Models 
 ```bash
 
 
@@ -291,11 +337,12 @@ python -m xarch_tokenizers.scripts.convert_supertoken_models \
     --only_model --public
 
 # Run lm_eval with converted model
+## TODO: clean
 echo "Running lm_eval..."
 lm_eval \
 --model hf --model_args "pretrained=$hf_out_path,tokenizer=$tokenizer" \
 --device cuda \
---tasks tokenizer_robustness_code_technical_content,tokenizer_robustness_context-dependent_ambiguities,tokenizer_robustness_mathematical_scientific_notation,tokenizer_robustness_morphological_challenges,tokenizer_robustness_multi-linguality,tokenizer_robustness_named_entities,tokenizer_robustness_orthographic_variations,tokenizer_robustness_social_media_informal_text,tokenizer_robustness_structural_text_elements,tokenizer_robustness_temporal_expressions \
+--tasks toksuite \
 --log_samples \
 --verbosity DEBUG \
 --output_path "results/tokenization_robustness/v102-cleaned/supertoken/$model"
@@ -304,6 +351,10 @@ lm_eval \
 ## Plotting and Reproducibility
 Here we list ways to reproduce the figures from the paper:
 - Figure 3-4-5: Run `notebooks/intrinsic-metrics-plots.ipynb`
+- Table 1:
+- Figure 7:
+- Figure 8 and Table 6 (Canonical Accuracy):
+It's fairly easy to reproduce the tables from the paper using toksuite utils on the lm-eval repo
 
 ## Citation
 
